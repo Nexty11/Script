@@ -1,0 +1,493 @@
+-- Убедимся, что скрипт выполняется как LocalScript
+if not script:IsA("LocalScript") then
+    script.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- Основные сервисы
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local HttpService = game:GetService("HttpService")
+
+-- Пароль для доступа
+local PASSWORD = "in0coma_NeXXty"
+local passwordAttempts = 0
+local MAX_ATTEMPTS = 3
+
+-- Создаем основной GUI
+local player = Players.LocalPlayer
+local gui = Instance.new("ScreenGui")
+gui.Name = "DumbnessyGui"
+gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+gui.Parent = player:WaitForChild("PlayerGui")
+
+-- Цветовая схема
+local colors = {
+    background = Color3.fromRGB(40, 40, 50),
+    button = Color3.fromRGB(70, 70, 90),
+    buttonHover = Color3.fromRGB(90, 90, 110),
+    accent = Color3.fromRGB(100, 150, 255),
+    close = Color3.fromRGB(220, 80, 80),
+    text = Color3.fromRGB(255, 255, 255),
+    grayVisuals = Color3.fromRGB(150, 150, 150),
+    error = Color3.fromRGB(220, 80, 80)
+}
+
+-- Функция для создания закругленного фрейма с тенью
+local function createRoundedFrame(parent, size, position, name)
+    local frame = Instance.new("Frame")
+    frame.Name = name or "Frame"
+    frame.BackgroundColor3 = colors.background
+    frame.Size = size
+    frame.Position = position
+    frame.AnchorPoint = Vector2.new(0.5, 0.5)
+    frame.Visible = false
+    frame.BorderSizePixel = 0
+    frame.ZIndex = 5
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.05, 0)
+    corner.Parent = frame
+    
+    local shadow = Instance.new("ImageLabel")
+    shadow.Name = "Shadow"
+    shadow.Image = "rbxassetid://5554236805"
+    shadow.ImageColor3 = Color3.new(0, 0, 0)
+    shadow.ImageTransparency = 0.8
+    shadow.ScaleType = Enum.ScaleType.Slice
+    shadow.SliceCenter = Rect.new(23, 23, 23, 23)
+    shadow.Size = UDim2.new(1, 10, 1, 10)
+    shadow.Position = UDim2.new(0, -5, 0, -5)
+    shadow.BackgroundTransparency = 1
+    shadow.ZIndex = 4
+    shadow.Parent = frame
+    
+    frame.Parent = parent
+    return frame
+end
+
+-- Функция для создания текста
+local function createLabel(parent, text, options)
+    local options = options or {}
+    local label = Instance.new("TextLabel")
+    label.Text = text
+    label.Font = options.Font or Enum.Font.GothamBold
+    label.TextColor3 = options.TextColor3 or colors.text
+    label.TextSize = options.TextSize or 24
+    label.Size = options.Size or UDim2.new(0.9, 0, 0.9, 0)
+    label.Position = options.Position or UDim2.new(0.05, 0, 0.05, 0)
+    label.BackgroundTransparency = 1
+    label.TextWrapped = true
+    label.ZIndex = 6
+    label.Parent = parent
+    
+    return label
+end
+
+-- Функция для создания кнопки с анимацией
+local function createButton(parent, text, position)
+    local button = Instance.new("TextButton")
+    button.Text = text
+    button.Font = Enum.Font.GothamBold
+    button.TextColor3 = colors.text
+    button.TextSize = 18
+    button.Size = UDim2.new(0.8, 0, 0.12, 0)
+    button.Position = position
+    button.BackgroundColor3 = colors.button
+    button.AutoButtonColor = false
+    button.BorderSizePixel = 0
+    button.ZIndex = 6
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.1, 0)
+    corner.Parent = button
+    
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = colors.buttonHover}):Play()
+    end)
+    
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = colors.button}):Play()
+    end)
+    
+    button.MouseButton1Down:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0.75, 0, 0.11, 0)}):Play()
+    end)
+    
+    button.MouseButton1Up:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0.8, 0, 0.12, 0)}):Play()
+    end)
+    
+    button.Parent = parent
+    return button
+end
+
+-- Функция для создания текстового поля
+local function createTextBox(parent, placeholder, position)
+    local textBoxFrame = Instance.new("Frame")
+    textBoxFrame.Size = UDim2.new(0.8, 0, 0.12, 0)
+    textBoxFrame.Position = position
+    textBoxFrame.BackgroundColor3 = colors.button
+    textBoxFrame.BorderSizePixel = 0
+    textBoxFrame.ZIndex = 6
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.1, 0)
+    corner.Parent = textBoxFrame
+    
+    local textBox = Instance.new("TextBox")
+    textBox.Size = UDim2.new(0.9, 0, 0.8, 0)
+    textBox.Position = UDim2.new(0.05, 0, 0.1, 0)
+    textBox.BackgroundTransparency = 1
+    textBox.Font = Enum.Font.GothamBold
+    textBox.TextColor3 = colors.text
+    textBox.TextSize = 18
+    textBox.PlaceholderText = placeholder
+    textBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
+    textBox.Text = ""
+    textBox.ClearTextOnFocus = false
+    textBox.ZIndex = 7
+    textBox.Parent = textBoxFrame
+    
+    textBoxFrame.Parent = parent
+    return textBox
+end
+
+-- Создаем окно ввода пароля
+local passwordFrame = createRoundedFrame(gui, UDim2.new(0.3, 0, 0.3, 0), UDim2.new(0.5, 0, 0.5, 0), "PasswordFrame")
+passwordFrame.Visible = true
+passwordFrame.BackgroundTransparency = 0
+
+createLabel(passwordFrame, "Введите пароль для доступа", {
+    TextSize = 20,
+    Position = UDim2.new(0.05, 0, 0.1, 0),
+    Size = UDim2.new(0.9, 0, 0.2, 0),
+    TextColor3 = colors.text
+})
+
+local passwordBox = createTextBox(passwordFrame, "Пароль", UDim2.new(0.1, 0, 0.35, 0))
+local submitBtn = createButton(passwordFrame, "Подтвердить", UDim2.new(0.1, 0, 0.6, 0))
+local statusLabel = createLabel(passwordFrame, "", {
+    TextSize = 16,
+    Position = UDim2.new(0.1, 0, 0.8, 0),
+    Size = UDim2.new(0.8, 0, 0.15, 0),
+    TextColor3 = colors.error
+})
+statusLabel.Visible = false
+
+-- Переменные для основного GUI
+local mainFrame, scriptsFrame, bioFrame, guiFrame, visualsFrame
+local dragCircle, currentFrame, menuVisible
+
+-- Функция для проверки пароля
+local function checkPassword()
+    local input = passwordBox.Text
+    if input == PASSWORD then
+        return true
+    else
+        passwordAttempts = passwordAttempts + 1
+        return false
+    end
+end
+
+-- Функция для показа/скрытия фреймов
+local function showFrame(frame)
+    frame.Visible = true
+    frame.BackgroundTransparency = 1
+    
+    for _, child in ipairs(frame:GetDescendants()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") then
+            child.TextTransparency = 1
+        elseif child:IsA("ImageLabel") and child.Name ~= "Shadow" then
+            child.ImageTransparency = 1
+        elseif child:IsA("Frame") and child.BackgroundTransparency ~= 1 then
+            child.BackgroundTransparency = 1
+        end
+    end
+    
+    TweenService:Create(frame, TweenInfo.new(0.3), {BackgroundTransparency = 0}):Play()
+    
+    for _, child in ipairs(frame:GetDescendants()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") then
+            task.spawn(function()
+                task.wait(0.05)
+                TweenService:Create(child, TweenInfo.new(0.25), {TextTransparency = 0}):Play()
+            end)
+        elseif child:IsA("ImageLabel") and child.Name ~= "Shadow" then
+            task.spawn(function()
+                task.wait(0.05)
+                TweenService:Create(child, TweenInfo.new(0.25), {ImageTransparency = 0}):Play()
+            end)
+        elseif child:IsA("Frame") and child.BackgroundTransparency ~= 1 then
+            task.spawn(function()
+                task.wait(0.05)
+                TweenService:Create(child, TweenInfo.new(0.25), {BackgroundTransparency = 0}):Play()
+            end)
+        end
+    end
+end
+
+local function hideFrame(frame)
+    for _, child in ipairs(frame:GetDescendants()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") then
+            TweenService:Create(child, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
+        elseif child:IsA("ImageLabel") and child.Name ~= "Shadow" then
+            TweenService:Create(child, TweenInfo.new(0.2), {ImageTransparency = 1}):Play()
+        elseif child:IsA("Frame") and child.BackgroundTransparency ~= 1 then
+            TweenService:Create(child, TweenInfo.new(0.2), {BackgroundTransparency = 1}):Play()
+        end
+    end
+    
+    TweenService:Create(frame, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
+    
+    task.delay(0.3, function()
+        frame.Visible = false
+    end)
+end
+
+-- Функция для создания основного GUI
+local function createMainGui()
+    -- Главное меню
+    mainFrame = createRoundedFrame(gui, UDim2.new(0.4, 0, 0.5, 0), UDim2.new(0.5, 0, 0.5, 0), "MainFrame")
+    createLabel(mainFrame, "DumbnessyGui", {
+        TextSize = 28,
+        Position = UDim2.new(0.05, 0, 0.05, 0),
+        Size = UDim2.new(0.9, 0, 0.15, 0)
+    })
+
+    local scriptsBtn = createButton(mainFrame, "Scripts", UDim2.new(0.1, 0, 0.2, 0))
+    local guiBtn = createButton(mainFrame, "GUI", UDim2.new(0.1, 0, 0.35, 0))
+    local visualsBtn = createButton(mainFrame, "Visuals", UDim2.new(0.1, 0, 0.5, 0))
+    local bioBtn = createButton(mainFrame, "BIO", UDim2.new(0.1, 0, 0.65, 0))
+
+    -- Окно скриптов
+    scriptsFrame = createRoundedFrame(gui, UDim2.new(0.4, 0, 0.6, 0), UDim2.new(0.5, 0, 0.5, 0), "ScriptsFrame")
+    createLabel(scriptsFrame, "Scripts Menu", {
+        TextSize = 28,
+        Position = UDim2.new(0.05, 0, 0.05, 0),
+        Size = UDim2.new(0.9, 0, 0.1, 0)
+    })
+
+    local infYieldBtn = createButton(scriptsFrame, "inf.yield", UDim2.new(0.1, 0, 0.2, 0))
+    local mm2Btn = createButton(scriptsFrame, "MM2 Xhub", UDim2.new(0.1, 0, 0.35, 0))
+    local gardenBtn = createButton(scriptsFrame, "Grow a garden", UDim2.new(0.1, 0, 0.5, 0))
+    local backBtn1 = createButton(scriptsFrame, "Back", UDim2.new(0.1, 0, 0.8, 0))
+
+    -- Окно BIO
+    bioFrame = createRoundedFrame(gui, UDim2.new(0.4, 0, 0.4, 0), UDim2.new(0.5, 0, 0.5, 0), "BioFrame")
+    createLabel(bioFrame, "By: 4ywot44", {
+        TextSize = 32,
+        Position = UDim2.new(0.05, 0, 0.3, 0),
+        Size = UDim2.new(0.9, 0, 0.3, 0),
+        TextColor3 = colors.accent
+    })
+    local backBtn2 = createButton(bioFrame, "Back", UDim2.new(0.35, 0, 0.8, 0))
+
+    -- Окно GUI (информация о сервере и игроке)
+    guiFrame = createRoundedFrame(gui, UDim2.new(0.5, 0, 0.7, 0), UDim2.new(0.5, 0, 0.5, 0), "GuiFrame")
+    createLabel(guiFrame, "Player & Server Info", {
+        TextSize = 28,
+        Position = UDim2.new(0.05, 0, 0.05, 0),
+        Size = UDim2.new(0.9, 0, 0.1, 0)
+    })
+
+    -- Окно Visuals
+    visualsFrame = createRoundedFrame(gui, UDim2.new(0.4, 0, 0.5, 0), UDim2.new(0.5, 0, 0.5, 0), "VisualsFrame")
+    createLabel(visualsFrame, "Visual Effects", {
+        TextSize = 28,
+        Position = UDim2.new(0.05, 0, 0.05, 0),
+        Size = UDim2.new(0.9, 0, 0.15, 0)
+    })
+
+    local grayVisualsBtn = createButton(visualsFrame, "Gray Visuals", UDim2.new(0.1, 0, 0.3, 0))
+    local backBtn4 = createButton(visualsFrame, "Back", UDim2.new(0.1, 0, 0.8, 0))
+
+    -- Создаем круг для управления
+    dragCircle = Instance.new("TextButton")
+    dragCircle.Name = "DragCircle"
+    dragCircle.Text = ""
+    dragCircle.Size = UDim2.new(0.08, 0, 0.08, 0)
+    dragCircle.Position = UDim2.new(0.5, 0, 0.8, 0)
+    dragCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+    dragCircle.BackgroundColor3 = colors.accent
+    dragCircle.BackgroundTransparency = 0.2
+    dragCircle.BorderSizePixel = 0
+    dragCircle.AutoButtonColor = false
+    dragCircle.ZIndex = 10
+
+    local glow = Instance.new("ImageLabel")
+    glow.Name = "Glow"
+    glow.Image = "rbxassetid://5028857084"
+    glow.ImageColor3 = colors.accent
+    glow.ImageTransparency = 0.8
+    glow.ScaleType = Enum.ScaleType.Slice
+    glow.SliceCenter = Rect.new(24, 24, 24, 24)
+    glow.Size = UDim2.new(1.2, 0, 1.2, 0)
+    glow.Position = UDim2.new(-0.1, 0, -0.1, 0)
+    glow.BackgroundTransparency = 1
+    glow.Parent = dragCircle
+
+    local circleCorner = Instance.new("UICorner")
+    circleCorner.CornerRadius = UDim.new(1, 0)
+    circleCorner.Parent = dragCircle
+    dragCircle.Parent = gui
+
+    -- Перемещение круга
+    local dragging = false
+    local dragStart, startPos
+
+    dragCircle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = dragCircle.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            dragCircle.Position = UDim2.new(
+                startPos.X.Scale, 
+                startPos.X.Offset + delta.X, 
+                startPos.Y.Scale, 
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    -- Открытие/закрытие меню
+    menuVisible = false
+    currentFrame = nil
+
+    local function toggleMenu()
+        menuVisible = not menuVisible
+        if menuVisible then
+            currentFrame = mainFrame
+            showFrame(mainFrame)
+        else
+            if currentFrame then
+                hideFrame(currentFrame)
+            end
+            currentFrame = nil
+        end
+    end
+
+    dragCircle.MouseButton1Click:Connect(function()
+        if not dragging then
+            toggleMenu()
+        end
+    end)
+
+    -- Обработчики кнопок главного меню
+    scriptsBtn.MouseButton1Click:Connect(function()
+        hideFrame(mainFrame)
+        task.wait(0.3)
+        currentFrame = scriptsFrame
+        showFrame(scriptsFrame)
+    end)
+
+    bioBtn.MouseButton1Click:Connect(function()
+        hideFrame(mainFrame)
+        task.wait(0.3)
+        currentFrame = bioFrame
+        showFrame(bioFrame)
+    end)
+
+    guiBtn.MouseButton1Click:Connect(function()
+        hideFrame(mainFrame)
+        task.wait(0.3)
+        currentFrame = guiFrame
+        showFrame(guiFrame)
+    end)
+
+    visualsBtn.MouseButton1Click:Connect(function()
+        hideFrame(mainFrame)
+        task.wait(0.3)
+        currentFrame = visualsFrame
+        showFrame(visualsFrame)
+    end)
+
+    -- Обработчики кнопок скриптов
+    infYieldBtn.MouseButton1Click:Connect(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", true))()
+    end)
+
+    mm2Btn.MouseButton1Click:Connect(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Au0yX/Community/main/XhubMM2", true))()
+    end)
+
+    gardenBtn.MouseButton1Click:Connect(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/gumanba/Scripts/refs/heads/main/GrowaGarden", true))()
+    end)
+
+    -- Обработчики кнопок "Back"
+    backBtn1.MouseButton1Click:Connect(function()
+        hideFrame(scriptsFrame)
+        task.wait(0.3)
+        currentFrame = mainFrame
+        showFrame(mainFrame)
+    end)
+
+    backBtn2.MouseButton1Click:Connect(function()
+        hideFrame(bioFrame)
+        task.wait(0.3)
+        currentFrame = mainFrame
+        showFrame(mainFrame)
+    end)
+
+    backBtn4.MouseButton1Click:Connect(function()
+        hideFrame(visualsFrame)
+        task.wait(0.3)
+        currentFrame = mainFrame
+        showFrame(mainFrame)
+    end)
+end
+
+-- Обработчик кнопки подтверждения
+submitBtn.MouseButton1Click:Connect(function()
+    if checkPassword() then
+        hideFrame(passwordFrame)
+        createMainGui() -- Создаем основной GUI после ввода правильного пароля
+    else
+        if passwordAttempts >= MAX_ATTEMPTS then
+            statusLabel.Text = "Превышено количество попыток. GUI закрыт."
+            statusLabel.Visible = true
+            task.delay(2, function()
+                gui:Destroy()
+            end)
+        else
+            statusLabel.Text = string.format("Неверный пароль! Попыток осталось: %d", MAX_ATTEMPTS - passwordAttempts)
+            statusLabel.Visible = true
+            
+            -- Анимация ошибки
+            passwordBox.Text = ""
+            TweenService:Create(passwordBox, TweenInfo.new(0.1), {Position = UDim2.new(0.15, 0, 0.35, 0)}):Play()
+            TweenService:Create(passwordBox, TweenInfo.new(0.1, {Delay = 0.1}), {Position = UDim2.new(0.05, 0, 0.35, 0)}):Play()
+            TweenService:Create(passwordBox, TweenInfo.new(0.1, {Delay = 0.2}), {Position = UDim2.new(0.1, 0, 0.35, 0)}):Play()
+        end
+    end
+end)
+
+-- Обработчик нажатия Enter в текстовом поле
+passwordBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then
+        submitBtn.MouseButton1Click()
+    end
+end)
+
+-- Скрываем пароль звездочками
+passwordBox.TextChanged:Connect(function()
+    if #passwordBox.Text > 0 then
+        passwordBox.Text = string.rep("*", #passwordBox.Text)
+    end
+end)
