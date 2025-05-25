@@ -1,6 +1,6 @@
 -- Убедимся, что скрипт выполняется как LocalScript
 if not script:IsA("LocalScript") then
-    script.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    error("Этот скрипт должен быть LocalScript!")
 end
 
 -- Основные сервисы
@@ -8,8 +8,6 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local Lighting = game:GetService("Lighting")
-local HttpService = game:GetService("HttpService")
 
 -- Пароль для доступа
 local PASSWORD = "in0coma_NeXXty"
@@ -305,37 +303,44 @@ local function createMainGui()
     local grayVisualsBtn = createButton(visualsFrame, "Gray Visuals", UDim2.new(0.1, 0, 0.3, 0))
     local backBtn4 = createButton(visualsFrame, "Back", UDim2.new(0.1, 0, 0.8, 0))
 
-    -- Создаем круг для управления
+    -- Создаем кнопку GUI (черную с надписью)
     dragCircle = Instance.new("TextButton")
-    dragCircle.Name = "DragCircle"
-    dragCircle.Text = ""
-    dragCircle.Size = UDim2.new(0.08, 0, 0.08, 0)
+    dragCircle.Name = "OpenGUI"
+    dragCircle.Text = "GUI"
+    dragCircle.Font = Enum.Font.GothamBold
+    dragCircle.TextSize = 14
+    dragCircle.TextColor3 = Color3.new(1, 1, 1)
+    dragCircle.Size = UDim2.new(0, 50, 0, 50)
     dragCircle.Position = UDim2.new(0.5, 0, 0.8, 0)
     dragCircle.AnchorPoint = Vector2.new(0.5, 0.5)
-    dragCircle.BackgroundColor3 = colors.accent
-    dragCircle.BackgroundTransparency = 0.2
+    dragCircle.BackgroundColor3 = Color3.new(0, 0, 0)
+    dragCircle.BackgroundTransparency = 0.3
     dragCircle.BorderSizePixel = 0
     dragCircle.AutoButtonColor = false
     dragCircle.ZIndex = 10
 
-    local glow = Instance.new("ImageLabel")
-    glow.Name = "Glow"
-    glow.Image = "rbxassetid://5028857084"
-    glow.ImageColor3 = colors.accent
-    glow.ImageTransparency = 0.8
-    glow.ScaleType = Enum.ScaleType.Slice
-    glow.SliceCenter = Rect.new(24, 24, 24, 24)
-    glow.Size = UDim2.new(1.2, 0, 1.2, 0)
-    glow.Position = UDim2.new(-0.1, 0, -0.1, 0)
-    glow.BackgroundTransparency = 1
-    glow.Parent = dragCircle
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(1, 0)
+    corner.Parent = dragCircle
 
-    local circleCorner = Instance.new("UICorner")
-    circleCorner.CornerRadius = UDim.new(1, 0)
-    circleCorner.Parent = dragCircle
     dragCircle.Parent = gui
 
-    -- Перемещение круга
+    -- Анимации кнопки
+    dragCircle.MouseEnter:Connect(function()
+        TweenService:Create(dragCircle, TweenInfo.new(0.2), {
+            BackgroundTransparency = 0.1,
+            TextColor3 = colors.accent
+        }):Play()
+    end)
+
+    dragCircle.MouseLeave:Connect(function()
+        TweenService:Create(dragCircle, TweenInfo.new(0.2), {
+            BackgroundTransparency = 0.3,
+            TextColor3 = Color3.new(1, 1, 1)
+        }):Play()
+    end)
+
+    -- Перемещение кнопки
     local dragging = false
     local dragStart, startPos
 
@@ -419,15 +424,21 @@ local function createMainGui()
 
     -- Обработчики кнопок скриптов
     infYieldBtn.MouseButton1Click:Connect(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", true))()
+        task.spawn(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", true))()
+        end)
     end)
 
     mm2Btn.MouseButton1Click:Connect(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Au0yX/Community/main/XhubMM2", true))()
+        task.spawn(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Au0yX/Community/main/XhubMM2", true))()
+        end)
     end)
 
     gardenBtn.MouseButton1Click:Connect(function()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/gumanba/Scripts/refs/heads/main/GrowaGarden", true))()
+        task.spawn(function()
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/gumanba/Scripts/refs/heads/main/GrowaGarden", true))()
+        end)
     end)
 
     -- Обработчики кнопок "Back"
@@ -457,7 +468,7 @@ end
 submitBtn.MouseButton1Click:Connect(function()
     if checkPassword() then
         hideFrame(passwordFrame)
-        createMainGui() -- Создаем основной GUI после ввода правильного пароля
+        createMainGui()
     else
         if passwordAttempts >= MAX_ATTEMPTS then
             statusLabel.Text = "Превышено количество попыток. GUI закрыт."
@@ -481,7 +492,7 @@ end)
 -- Обработчик нажатия Enter в текстовом поле
 passwordBox.FocusLost:Connect(function(enterPressed)
     if enterPressed then
-        submitBtn.MouseButton1Click()
+        submitBtn.MouseButton1Click:Wait()
     end
 end)
 
