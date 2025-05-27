@@ -8,6 +8,8 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local Lighting = game:GetService("Lighting")
+local Stats = game:GetService("Stats")
 
 -- Пароль для доступа
 local PASSWORD = "in0coma_NeXXty"
@@ -246,6 +248,122 @@ local function hideFrame(frame)
     end)
 end
 
+-- Функция для создания аватара игрока
+local function createPlayerAvatar(parent, player)
+    local avatarFrame = Instance.new("Frame")
+    avatarFrame.Size = UDim2.new(0.3, 0, 0.3, 0)
+    avatarFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
+    avatarFrame.BackgroundTransparency = 1
+    avatarFrame.ZIndex = 6
+    
+    local avatarImage = Instance.new("ImageLabel")
+    avatarImage.Size = UDim2.new(1, 0, 1, 0)
+    avatarImage.BackgroundTransparency = 1
+    avatarImage.ZIndex = 7
+    
+    -- Загружаем аватар
+    pcall(function()
+        local userId = player.UserId
+        local thumbType = Enum.ThumbnailType.HeadShot
+        local thumbSize = Enum.ThumbnailSize.Size420x420
+        local content, isReady = Players:GetUserThumbnailAsync(userId, thumbType, thumbSize)
+        avatarImage.Image = content
+    end)
+    
+    avatarImage.Parent = avatarFrame
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.1, 0)
+    corner.Parent = avatarImage
+    
+    avatarFrame.Parent = parent
+    return avatarFrame
+end
+
+-- Функция для создания информации о FPS
+local function createFpsCounter(parent)
+    local fpsFrame = Instance.new("Frame")
+    fpsFrame.Size = UDim2.new(0.9, 0, 0.1, 0)
+    fpsFrame.Position = UDim2.new(0.05, 0, 0.5, 0)
+    fpsFrame.BackgroundTransparency = 1
+    fpsFrame.ZIndex = 6
+    
+    local fpsLabel = createLabel(fpsFrame, "FPS: 0", {
+        TextSize = 20,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 1, 0),
+        TextColor3 = colors.text
+    })
+    
+    local lastUpdate = 0
+    local frames = 0
+    
+    RunService.Heartbeat:Connect(function()
+        frames = frames + 1
+        if time() - lastUpdate >= 1 then
+            fpsLabel.Text = string.format("FPS: %d", frames)
+            frames = 0
+            lastUpdate = time()
+        end
+    end)
+    
+    fpsFrame.Parent = parent
+    return fpsFrame
+end
+
+-- Функция для создания информации о времени захода
+local function createJoinTime(parent)
+    local timeFrame = Instance.new("Frame")
+    timeFrame.Size = UDim2.new(0.9, 0, 0.1, 0)
+    timeFrame.Position = UDim2.new(0.05, 0, 0.6, 0)
+    timeFrame.BackgroundTransparency = 1
+    timeFrame.ZIndex = 6
+    
+    local joinTime = os.date("%H:%M:%S")
+    local timeLabel = createLabel(timeFrame, "Joined: " .. joinTime, {
+        TextSize = 20,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 1, 0),
+        TextColor3 = colors.text
+    })
+    
+    timeFrame.Parent = parent
+    return timeFrame
+end
+
+-- Функция для создания информации об игроке
+local function createPlayerInfo(parent, player)
+    local infoFrame = Instance.new("Frame")
+    infoFrame.Size = UDim2.new(0.5, 0, 0.3, 0)
+    infoFrame.Position = UDim2.new(0.4, 0, 0.15, 0)
+    infoFrame.BackgroundTransparency = 1
+    infoFrame.ZIndex = 6
+    
+    local usernameLabel = createLabel(infoFrame, "Username: " .. player.Name, {
+        TextSize = 20,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 0.3, 0),
+        TextColor3 = colors.text
+    })
+    
+    local displayNameLabel = createLabel(infoFrame, "Display: " .. player.DisplayName, {
+        TextSize = 20,
+        Position = UDim2.new(0, 0, 0.3, 0),
+        Size = UDim2.new(1, 0, 0.3, 0),
+        TextColor3 = colors.text
+    })
+    
+    local userIdLabel = createLabel(infoFrame, "UserID: " .. player.UserId, {
+        TextSize = 20,
+        Position = UDim2.new(0, 0, 0.6, 0),
+        Size = UDim2.new(1, 0, 0.3, 0),
+        TextColor3 = colors.text
+    })
+    
+    infoFrame.Parent = parent
+    return infoFrame
+end
+
 -- Функция для создания основного GUI
 local function createMainGui()
     -- Главное меню
@@ -282,7 +400,7 @@ local function createMainGui()
         Size = UDim2.new(0.9, 0, 0.3, 0),
         TextColor3 = colors.accent
     })
-    local backBtn2 = createButton(bioFrame, "Back", UDim2.new(0.35, 0, 0.8, 0))
+    local backBtn2 = createButton(bioFrame, "Back", UDim2.new(0.1, 0, 0.8, 0))
 
     -- Окно GUI (информация о сервере и игроке)
     guiFrame = createRoundedFrame(gui, UDim2.new(0.5, 0, 0.7, 0), UDim2.new(0.5, 0, 0.5, 0), "GuiFrame")
@@ -291,6 +409,54 @@ local function createMainGui()
         Position = UDim2.new(0.05, 0, 0.05, 0),
         Size = UDim2.new(0.9, 0, 0.1, 0)
     })
+    
+    -- Добавляем информацию о игроке
+    createPlayerAvatar(guiFrame, player)
+    createPlayerInfo(guiFrame, player)
+    createFpsCounter(guiFrame)
+    createJoinTime(guiFrame)
+    
+    -- Добавляем информацию о сервере
+    local serverInfoFrame = Instance.new("Frame")
+    serverInfoFrame.Size = UDim2.new(0.9, 0, 0.2, 0)
+    serverInfoFrame.Position = UDim2.new(0.05, 0, 0.7, 0)
+    serverInfoFrame.BackgroundTransparency = 1
+    serverInfoFrame.ZIndex = 6
+    
+    local placeIdLabel = createLabel(serverInfoFrame, "Place ID: " .. game.PlaceId, {
+        TextSize = 20,
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 0.25, 0),
+        TextColor3 = colors.text
+    })
+    
+    local playersLabel = createLabel(serverInfoFrame, "Players: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers, {
+        TextSize = 20,
+        Position = UDim2.new(0, 0, 0.25, 0),
+        Size = UDim2.new(1, 0, 0.25, 0),
+        TextColor3 = colors.text
+    })
+    
+    local pingLabel = createLabel(serverInfoFrame, "Ping: calculating...", {
+        TextSize = 20,
+        Position = UDim2.new(0, 0, 0.5, 0),
+        Size = UDim2.new(1, 0, 0.25, 0),
+        TextColor3 = colors.text
+    })
+    
+    -- Обновляем пинг
+    spawn(function()
+        while true do
+            local stats = Stats.Network.ServerStatsItem["Data Ping"]
+            if stats then
+                pingLabel.Text = "Ping: " .. string.format("%.0f", stats:GetValue()) .. "ms"
+            end
+            wait(1)
+        end
+    end)
+    
+    serverInfoFrame.Parent = guiFrame
+    local backBtn3 = createButton(guiFrame, "Back", UDim2.new(0.1, 0, 0.8, 0))
 
     -- Окно Visuals
     visualsFrame = createRoundedFrame(gui, UDim2.new(0.4, 0, 0.5, 0), UDim2.new(0.5, 0, 0.5, 0), "VisualsFrame")
@@ -301,7 +467,106 @@ local function createMainGui()
     })
 
     local grayVisualsBtn = createButton(visualsFrame, "Gray Visuals", UDim2.new(0.1, 0, 0.3, 0))
+    local chinaHeadBtn = createButton(visualsFrame, "China Head", UDim2.new(0.1, 0, 0.45, 0))
     local backBtn4 = createButton(visualsFrame, "Back", UDim2.new(0.1, 0, 0.8, 0))
+
+    -- Обработчик для Gray Visuals
+    grayVisualsBtn.MouseButton1Click:Connect(function()
+        if Lighting:FindFirstChild("GrayVisuals") then
+            Lighting.GrayVisuals:Destroy()
+            grayVisualsBtn.Text = "Gray Visuals"
+        else
+            local colorCorrection = Instance.new("ColorCorrectionEffect")
+            colorCorrection.Name = "GrayVisuals"
+            colorCorrection.Saturation = -1
+            colorCorrection.Contrast = 0.1
+            colorCorrection.TintColor = colors.grayVisuals
+            colorCorrection.Parent = Lighting
+            
+            grayVisualsBtn.Text = "Disable Gray"
+        end
+    end)
+
+    -- Обработчик для China Head в стиле Minecraft
+    local chinaHeadActive = false
+    local chinaHeadPart = nil
+
+    chinaHeadBtn.MouseButton1Click:Connect(function()
+        if chinaHeadActive then
+            -- Удаляем шапку если она есть
+            if chinaHeadPart then
+                chinaHeadPart:Destroy()
+                chinaHeadPart = nil
+            end
+            chinaHeadBtn.Text = "China Head"
+            chinaHeadActive = false
+        else
+            -- Создаем китайскую шляпу в стиле Minecraft
+            local character = player.Character or player.CharacterAdded:Wait()
+            if character then
+                local head = character:WaitForChild("Head")
+                if head then
+                    chinaHeadPart = Instance.new("Part")
+                    chinaHeadPart.Name = "ChinaHat"
+                    chinaHeadPart.Size = Vector3.new(3, 0.2, 3) -- Плоская и широкая
+                    chinaHeadPart.Transparency = 0.3 -- Полупрозрачность
+                    chinaHeadPart.Color = Color3.new(1, 0, 0) -- Красный цвет как в Minecraft
+                    chinaHeadPart.Material = Enum.Material.Neon
+                    chinaHeadPart.Anchored = false
+                    chinaHeadPart.CanCollide = false
+                    
+                    -- Создаем меш в форме китайской шляпы (конус с острым кончиком)
+                    local mesh = Instance.new("SpecialMesh", chinaHeadPart)
+                    mesh.MeshType = Enum.MeshType.FileMesh
+                    mesh.MeshId = "rbxassetid://1778999" -- ID конусообразной меши
+                    mesh.Scale = Vector3.new(1.8, 3.5, 1.8) -- Высокий и острый
+                    
+                    -- Прикрепляем к голове
+                    local weld = Instance.new("WeldConstraint")
+                    weld.Part0 = head
+                    weld.Part1 = chinaHeadPart
+                    weld.Parent = chinaHeadPart
+                    
+                    -- Позиционируем на голове (выше и немного под углом)
+                    chinaHeadPart.CFrame = head.CFrame * CFrame.new(0, 1.2, 0) * CFrame.Angles(math.rad(-10), 0, 0)
+                    chinaHeadPart.Parent = character
+                    
+                    -- Добавляем декоративную кисточку на кончике
+                    local tassel = Instance.new("Part")
+                    tassel.Name = "Tassel"
+                    tassel.Size = Vector3.new(0.2, 0.5, 0.2)
+                    tassel.Color = Color3.new(1, 1, 0) -- Желтая кисточка
+                    tassel.Material = Enum.Material.Neon
+                    tassel.Anchored = false
+                    tassel.CanCollide = false
+                    
+                    local tasselMesh = Instance.new("CylinderMesh", tassel)
+                    tasselMesh.Scale = Vector3.new(1, 2, 1)
+                    
+                    local tasselWeld = Instance.new("WeldConstraint")
+                    tasselWeld.Part0 = chinaHeadPart
+                    tasselWeld.Part1 = tassel
+                    tasselWeld.Parent = tassel
+                    
+                    tassel.CFrame = chinaHeadPart.CFrame * CFrame.new(0, -1.8, 0)
+                    tassel.Parent = chinaHeadPart
+                    
+                    chinaHeadBtn.Text = "Remove China"
+                    chinaHeadActive = true
+                    
+                    -- Обработчик на случай смерти/перезагрузки персонажа
+                    character:WaitForChild("Humanoid").Died:Connect(function()
+                        if chinaHeadPart then
+                            chinaHeadPart:Destroy()
+                            chinaHeadPart = nil
+                        end
+                        chinaHeadActive = false
+                        chinaHeadBtn.Text = "China Head"
+                    end)
+                end
+            end
+        end
+    end)
 
     -- Создаем кнопку GUI (черную с надписью)
     dragCircle = Instance.new("TextButton")
@@ -422,20 +687,29 @@ local function createMainGui()
         showFrame(visualsFrame)
     end)
 
-    -- Обработчики кнопок скриптов
+    -- Обработчики кнопок скриптов (с автоматическим закрытием GUI)
+    local function executeScriptAndClose()
+        hideFrame(scriptsFrame)
+        task.wait(0.3)
+        toggleMenu() -- Закрываем GUI
+    end
+
     infYieldBtn.MouseButton1Click:Connect(function()
+        executeScriptAndClose()
         task.spawn(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source", true))()
         end)
     end)
 
     mm2Btn.MouseButton1Click:Connect(function()
+        executeScriptAndClose()
         task.spawn(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/Au0yX/Community/main/XhubMM2", true))()
         end)
     end)
 
     gardenBtn.MouseButton1Click:Connect(function()
+        executeScriptAndClose()
         task.spawn(function()
             loadstring(game:HttpGet("https://raw.githubusercontent.com/gumanba/Scripts/refs/heads/main/GrowaGarden", true))()
         end)
@@ -451,6 +725,13 @@ local function createMainGui()
 
     backBtn2.MouseButton1Click:Connect(function()
         hideFrame(bioFrame)
+        task.wait(0.3)
+        currentFrame = mainFrame
+        showFrame(mainFrame)
+    end)
+
+    backBtn3.MouseButton1Click:Connect(function()
+        hideFrame(guiFrame)
         task.wait(0.3)
         currentFrame = mainFrame
         showFrame(mainFrame)
@@ -496,9 +777,4 @@ passwordBox.FocusLost:Connect(function(enterPressed)
     end
 end)
 
--- Скрываем пароль звездочками
-passwordBox.TextChanged:Connect(function()
-    if #passwordBox.Text > 0 then
-        passwordBox.Text = string.rep("*", #passwordBox.Text)
-    end
-end)
+-- Скрываем пароль звездо
